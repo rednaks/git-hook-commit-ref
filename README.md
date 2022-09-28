@@ -13,7 +13,7 @@ cargo build --release
 
 ## Configure your git repo
 
-in your project, edit the `.git/config` file to add the organization and the project name:
+in your project, edit the `.git/config` file to add the organization and the project name, and a list of forbidden branches to commit from.
 
 eg:
 
@@ -21,6 +21,7 @@ eg:
 [commit-ref-hook]
   org = "rednaks"
   project = "git-hook-commit-ref"
+  forbiddenbranches = "master, release"
 ```
 
 and then copy the binary to you `.git/hooks/prepare-commit-msg`

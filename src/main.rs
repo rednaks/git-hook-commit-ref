@@ -4,9 +4,8 @@ mod config;
 
 fn get_current_branch() -> String {
     let output = Command::new("git")
-        .arg("status")
-        .arg("-s")
-        .arg("-b")
+        .arg("branch")
+        .arg("--show-current")
         .output()
         .expect("failed to execute git command");
 
@@ -17,9 +16,6 @@ fn get_current_branch() -> String {
         .nth(0)
         .expect("Failed git execute git")
         .to_string()
-        .replace("## ", "")
-        .replace("No commits yet", "")
-        .replace("on", "")
         .trim()
         .to_string()
 }
@@ -52,14 +48,8 @@ fn check_commit_msg(
     branch: String,
 ) -> Result<String, String> {
     // check if branch is good:
-    let forbidden_branches = vec![
-        String::from("master"),
-        String::from("main"),
-        String::from("prod"),
-        String::from("release"),
-    ];
 
-    if forbidden_branches.contains(&branch) {
+    if config.forbidden_branches.contains(&branch) {
         return Err(String::from(
             "Branch name is forbidden, you can't commit here",
         ));
