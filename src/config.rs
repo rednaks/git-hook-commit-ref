@@ -4,6 +4,7 @@ use std::process::Command;
 pub struct Config {
     pub org: String,
     pub project: String,
+    pub forbidden_branches: Vec<String>,
 }
 
 pub fn get_config() -> Config {
@@ -19,7 +20,26 @@ pub fn get_config() -> Config {
         .arg("--get")
         .arg("commit-ref-hook.project")
         .output()
-        .expect("Not configured, missing 'org' key ");
+        .expect("Not configured, missing 'project' key ");
+
+    let forbidden_branches_output = Command::new("git")
+        .arg("config")
+        .arg("--get")
+        .arg("commit-ref-hook.forbiddenbranches")
+        .output()
+        .expect("Not configured, missing 'forbiddenbranches' key ")
+        .stdout;
+
+    let mut forbidden_branches: Vec<String> = Vec::new();
+
+    for b in String::from_utf8(forbidden_branches_output)
+        .unwrap()
+        .trim()
+        .to_string()
+        .split(", ")
+    {
+        forbidden_branches.push(b.to_string());
+    }
 
     Config {
         org: String::from_utf8(org_output.stdout)
@@ -30,5 +50,6 @@ pub fn get_config() -> Config {
             .unwrap()
             .trim()
             .to_string(),
+        forbidden_branches,
     }
 }
