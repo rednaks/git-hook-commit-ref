@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::process::Command;
 
 #[derive(Debug)]
@@ -7,49 +8,52 @@ pub struct Config {
     pub forbidden_branches: Vec<String>,
 }
 
-pub fn get_config() -> Config {
-    let org_output = Command::new("git")
-        .arg("config")
-        .arg("--get")
-        .arg("commit-ref-hook.org")
-        .output()
-        .expect("Not configured, missing 'org' key ");
-
-    let project_output = Command::new("git")
-        .arg("config")
-        .arg("--get")
-        .arg("commit-ref-hook.project")
-        .output()
-        .expect("Not configured, missing 'project' key ");
-
-    let forbidden_branches_output = Command::new("git")
-        .arg("config")
-        .arg("--get")
-        .arg("commit-ref-hook.forbiddenbranches")
-        .output()
-        .expect("Not configured, missing 'forbiddenbranches' key ")
-        .stdout;
-
-    let mut forbidden_branches: Vec<String> = Vec::new();
-
-    for b in String::from_utf8(forbidden_branches_output)
-        .unwrap()
-        .trim()
-        .to_string()
-        .split(", ")
-    {
-        forbidden_branches.push(b.to_string());
-    }
-
-    Config {
-        org: String::from_utf8(org_output.stdout)
+impl Config {
+    pub fn from_map(config: HashMap<String, String>) -> Config {
+        let mut forbidden_branches: Vec<String> = Vec::new();
+        for fb in config
+            .get("forbiddenbranches")
             .unwrap()
             .trim()
-            .to_string(),
-        project: String::from_utf8(project_output.stdout)
-            .unwrap()
-            .trim()
-            .to_string(),
-        forbidden_branches,
+            .to_string()
+            .split(", ")
+        {
+            forbidden_branches.push(fb.to_string());
+        }
+
+        Config {
+            org: String::from(config.get("org").unwrap()),
+            project: String::from(config.get("project").unwrap()),
+            forbidden_branches,
+        }
     }
+}
+
+pub fn get_config(prefix: String) -> HashMap<String, String> {
+    let git_config = String::from_utf8(
+        Command::new("git")
+            .arg("config")
+            .arg("--list")
+            .output()
+            .expect("Unable to find git config")
+            .stdout,
+    )
+    .unwrap();
+
+    let hook_config = git_config
+        .lines()
+        .filter(|line| line.starts_with(prefix.as_str()));
+
+    let mut config = HashMap::<String, String>::new();
+
+    for c in hook_config {
+        let kv_clean = c.replace(format!("{}.", prefix).as_str(), "");
+        let mut kv = kv_clean.split('=');
+        config.insert(
+            String::from(kv.next().unwrap()),
+            String::from(kv.next().unwrap()),
+        );
+    }
+
+    config
 }
