@@ -1,6 +1,7 @@
 use std::env;
 use std::process::Command;
 mod config;
+use config::{get_config, Config};
 
 fn get_current_branch() -> String {
     let output = Command::new("git")
@@ -24,7 +25,7 @@ fn get_commit_msg(commit_msg_file: &String) -> String {
     std::fs::read_to_string(commit_msg_file).expect("Unable to read commit file msg")
 }
 
-fn make_ref(config: config::Config, branch: String) -> Result<String, String> {
+fn make_ref(config: Config, branch: String) -> Result<String, String> {
     if !branch.contains(&config.org) {
         return Err(String::from(
             "Wrong branch name, should be formatted <org>-<issue_number>",
@@ -42,11 +43,7 @@ fn make_ref(config: config::Config, branch: String) -> Result<String, String> {
     }
 }
 
-fn check_commit_msg(
-    config: config::Config,
-    commit_msg: &String,
-    branch: String,
-) -> Result<String, String> {
+fn check_commit_msg(config: Config, commit_msg: &String, branch: String) -> Result<String, String> {
     // check if branch is good:
 
     if config.forbidden_branches.contains(&branch) {
@@ -84,7 +81,7 @@ fn main() {
 
     let commit_msg = get_commit_msg(&commit_msg_file);
 
-    let config = config::get_config();
+    let config = Config::from_map(get_config(String::from("commit-ref-hook")));
 
     match check_commit_msg(config, &commit_msg, current_branch) {
         Ok(new_commit_msg) => {
