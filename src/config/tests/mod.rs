@@ -37,8 +37,11 @@ fn test_get_config_with_all_fields() {
     use_git_config_file(String::from("test_get_config_with_all_fields"));
 
     let config_map = config::get_config("commit-hook-ref".to_string());
+    let config = Config::from_map(config_map);
 
-    assert_eq!(config_map.get("org"), Some(&"my-org".to_string()));
+    assert_eq!(config.org, "test-org");
+    assert_eq!(config.project, "test-project");
+    assert_eq!(config.forbidden_branches, vec!["master", "main", "prod"]);
 }
 
 #[test]

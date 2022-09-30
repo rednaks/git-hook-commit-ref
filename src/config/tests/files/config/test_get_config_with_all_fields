@@ -1,2 +1,4 @@
 [commit-hook-ref]
-  org = "my-org"
+  org = "test-org"
+  project = "test-project"
+  forbiddenbranches= "master, main, prod"
