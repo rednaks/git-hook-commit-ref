@@ -1,3 +1,4 @@
 [commit-hook-ref]
   project = "test"
+  forbiddenbranches = "master, prod, dev"
 

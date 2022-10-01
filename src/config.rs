@@ -6,7 +6,7 @@ mod tests;
 
 #[derive(Debug)]
 pub struct Config {
-    pub org: String,
+    pub org: Option<String>,
     pub project: String,
     pub forbidden_branches: Vec<String>,
 }
@@ -29,7 +29,7 @@ impl Config {
         };
 
         let org = match config.get("org") {
-            Some(org) => org.to_string(),
+            Some(org) => Some(org.clone()),
             None => return Err(String::from("Mirring org in the config")),
         };
 
