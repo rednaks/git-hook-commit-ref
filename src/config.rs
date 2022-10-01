@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use std::process::Command;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug)]
 pub struct Config {
     pub org: String,
