@@ -4,22 +4,25 @@ use std::process::Command;
 #[cfg(test)]
 mod tests;
 
-pub fn get_current_branch() -> String {
+pub fn get_current_branch() -> Result<String, String> {
     let output = Command::new("git")
         .arg("branch")
         .arg("--show-current")
         .output()
         .expect("failed to execute git command");
 
-    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stdout = match String::from_utf8(output.stdout) {
+        Ok(s) => s,
+        Err(_) => return Err(String::from("Output issue")),
+    };
 
-    stdout
+    Ok(stdout
         .lines()
         .nth(0)
         .expect("Failed git execute git")
         .to_string()
         .trim()
-        .to_string()
+        .to_string())
 }
 
 pub fn get_commit_msg(commit_msg_file: &String) -> String {
@@ -33,7 +36,16 @@ pub fn make_ref(config: Config, branch: String) -> Result<String, String> {
         ));
     }
 
-    match branch.split('-').last().unwrap().parse::<u16>() {
+    let issue_number_part = match branch.split('-').last() {
+        Some(part) => part,
+        None => {
+            return Err(String::from(
+                "Wrong branch name, should be formatted <org>-<issue_number>",
+            ))
+        }
+    };
+
+    match issue_number_part.parse::<u16>() {
         Ok(issue_number) => Ok(String::from(format!(
             "{}/{}#{}",
             config.org, config.project, issue_number

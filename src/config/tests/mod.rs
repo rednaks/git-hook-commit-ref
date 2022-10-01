@@ -19,7 +19,7 @@ fn use_git_config_file(git_config_file: String) {
 fn test_get_config_empty() {
     use_git_config_file(String::from("test_get_config_empty"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string());
+    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
     assert!(config_map.is_empty());
 }
 
@@ -27,7 +27,7 @@ fn test_get_config_empty() {
 fn test_get_config_without_org() {
     use_git_config_file(String::from("test_get_config_without_org"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string());
+    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
 
     assert!(config_map.get("org") == None);
 }
@@ -36,8 +36,13 @@ fn test_get_config_without_org() {
 fn test_get_config_with_all_fields() {
     use_git_config_file(String::from("test_get_config_with_all_fields"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string());
-    let config = Config::from_map(config_map);
+    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+    let config = match Config::from_map(config_map) {
+        Ok(config) => config,
+        Err(e) => {
+            panic!("{}", e)
+        }
+    };
 
     assert_eq!(config.org, "test-org");
     assert_eq!(config.project, "test-project");
@@ -52,7 +57,12 @@ fn test_make_config_from_map() {
     config_map.insert(String::from("project"), String::from("test-project"));
     config_map.insert(String::from("forbiddenbranches"), String::from("master"));
 
-    let config = Config::from_map(config_map);
+    let config = match Config::from_map(config_map) {
+        Ok(config) => config,
+        Err(e) => {
+            panic!("{}", e)
+        }
+    };
 
     assert_eq!(config.org, "test-org");
     assert_eq!(config.project, "test-project");

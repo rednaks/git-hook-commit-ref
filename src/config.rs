@@ -12,36 +12,47 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_map(config: HashMap<String, String>) -> Config {
+    pub fn from_map(config: HashMap<String, String>) -> Result<Config, String> {
         let mut forbidden_branches: Vec<String> = Vec::new();
-        for fb in config
+        let forbidden_branches_fallback = String::from("master, main");
+        let forbidden_branches_str = config
             .get("forbiddenbranches")
-            .unwrap()
-            .trim()
-            .to_string()
-            .split(", ")
-        {
-            forbidden_branches.push(fb.to_string());
+            .unwrap_or(&forbidden_branches_fallback);
+
+        for fb in forbidden_branches_str.trim().to_string().split(", ") {
+            forbidden_branches.push(String::from(fb));
         }
 
-        Config {
-            org: String::from(config.get("org").unwrap()),
-            project: String::from(config.get("project").unwrap()),
+        let project = match config.get("project") {
+            Some(project) => project.to_string(),
+            None => return Err(String::from("Missing project in the config")),
+        };
+
+        let org = match config.get("org") {
+            Some(org) => org.to_string(),
+            None => return Err(String::from("Mirring org in the config")),
+        };
+
+        Ok(Config {
+            org,
+            project,
             forbidden_branches,
-        }
+        })
     }
 }
 
-pub fn get_config(prefix: String) -> HashMap<String, String> {
-    let git_config = String::from_utf8(
+pub fn get_config(prefix: String) -> Result<HashMap<String, String>, String> {
+    let git_config = match String::from_utf8(
         Command::new("git")
             .arg("config")
             .arg("--list")
             .output()
             .expect("Unable to find git config")
             .stdout,
-    )
-    .unwrap();
+    ) {
+        Ok(c) => c,
+        Err(_) => return Err(String::from("Error while parsing config")),
+    };
 
     let hook_config = git_config
         .lines()
@@ -58,5 +69,5 @@ pub fn get_config(prefix: String) -> HashMap<String, String> {
         );
     }
 
-    config
+    Ok(config)
 }
