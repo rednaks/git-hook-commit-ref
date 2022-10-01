@@ -33,6 +33,18 @@ fn test_get_config_without_org() {
 }
 
 #[test]
+fn test_get_config_without_branches() {
+    use_git_config_file(String::from("test_get_config_without_branches"));
+
+    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+
+    let config = config::Config::from_map(config_map).unwrap();
+
+    let expected_branches = vec![String::from("master"), String::from("main")];
+    assert_eq!(config.forbidden_branches, expected_branches)
+}
+
+#[test]
 fn test_get_config_with_all_fields() {
     use_git_config_file(String::from("test_get_config_with_all_fields"));
 
@@ -44,7 +56,7 @@ fn test_get_config_with_all_fields() {
         }
     };
 
-    assert_eq!(config.org, "test-org");
+    assert_eq!(config.org, Some(String::from("test-org")));
     assert_eq!(config.project, "test-project");
     assert_eq!(config.forbidden_branches, vec!["master", "main", "prod"]);
 }
@@ -64,7 +76,7 @@ fn test_make_config_from_map() {
         }
     };
 
-    assert_eq!(config.org, "test-org");
+    assert_eq!(config.org, Some(String::from("test-org")));
     assert_eq!(config.project, "test-project");
     assert_eq!(config.forbidden_branches, vec!["master"]);
 }

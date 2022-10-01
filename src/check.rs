@@ -30,10 +30,17 @@ pub fn get_commit_msg(commit_msg_file: &String) -> String {
 }
 
 pub fn make_ref(config: Config, branch: String) -> Result<String, String> {
-    if !branch.contains(&config.org) {
-        return Err(String::from(
-            "Wrong branch name, missing organization should be formatted <org>-<issue_number>",
-        ));
+    match config.org.clone() {
+        Some(org) => {
+            if !branch.contains(&org) {
+                return Err(String::from(
+                    "Wrong branch name, missing organization should be formatted <org>-<issue_number>",
+                ));
+            }
+        }
+        None => {
+            // nothing to do
+        }
     }
 
     let issue_number_part = match branch.split('-').last() {
@@ -46,10 +53,20 @@ pub fn make_ref(config: Config, branch: String) -> Result<String, String> {
     };
 
     match issue_number_part.parse::<u16>() {
-        Ok(issue_number) => Ok(String::from(format!(
-            "{}/{}#{}",
-            config.org, config.project, issue_number
-        ))),
+        Ok(issue_number) => {
+            let org = match config.org {
+                Some(org) => org,
+                None => {
+                    return Ok(String::from(format!("{}#{}", config.project, issue_number)));
+                }
+            };
+
+            Ok(String::from(format!(
+                "{}/{}#{}",
+                org, config.project, issue_number
+            )))
+        }
+
         Err(_) => Err(String::from(
             "Wrong branch name, should be formatted <org>-<issue_number>",
         )),
