@@ -1,5 +1,6 @@
 use crate::check;
 use crate::config;
+use regex::Regex;
 
 impl Clone for check::Config {
     fn clone(&self) -> Self {
@@ -129,4 +130,84 @@ fn test_make_ref_without_org() {
     let res = check::make_ref(config.clone(), String::from("org-123"));
 
     assert_eq!(res, Ok(String::from(format!("{}#123", config.project))));
+}
+
+#[test]
+fn test_pattner_simple_complex() {
+    let branch_name = "my-org-12-shor-description";
+    let pattern = r"^(?P<org>[aA-zZ0-9_\-]+)-(?P<issue_number>\d+).*";
+
+    let re = Regex::new(pattern).unwrap();
+
+    let mut org: String = String::from("");
+    let mut issue_number: u16 = 0;
+
+    match re.captures(branch_name) {
+        Some(cap) => {
+            match cap.get(1) {
+                Some(o) => {
+                    org = String::from(o.as_str());
+                }
+                None => {
+                    println!("Couldn't match the org")
+                }
+            };
+
+            match cap.get(2) {
+                Some(inum) => {
+                    issue_number = inum.as_str().parse::<u16>().unwrap();
+                }
+                None => {
+                    println!("Couldn't match the issue number")
+                }
+            };
+        }
+
+        None => {
+            assert!(false, "No matches found");
+        }
+    };
+
+    assert_eq!(org, "my-org");
+    assert_eq!(issue_number, 12);
+}
+
+#[test]
+fn test_pattner_simple() {
+    let branch_name = "myorg-123-shor-description";
+    let pattern = r"^(?P<org>\w+)-(?P<issue_number>\d+).*";
+
+    let re = Regex::new(pattern).unwrap();
+
+    let mut org: String = String::from("");
+    let mut issue_number: u16 = 0;
+
+    match re.captures(branch_name) {
+        Some(cap) => {
+            match cap.get(1) {
+                Some(o) => {
+                    org = String::from(o.as_str());
+                }
+                None => {
+                    println!("Couldn't match the org")
+                }
+            };
+
+            match cap.get(2) {
+                Some(inum) => {
+                    issue_number = inum.as_str().parse::<u16>().unwrap();
+                }
+                None => {
+                    println!("Couldn't match the issue number")
+                }
+            };
+        }
+
+        None => {
+            assert!(false, "No matches found");
+        }
+    };
+
+    assert_eq!(org, "myorg");
+    assert_eq!(issue_number, 123);
 }
