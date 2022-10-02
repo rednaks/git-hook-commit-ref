@@ -22,7 +22,15 @@ eg:
   org = "rednaks"
   project = "git-hook-commit-ref"
   forbiddenbranches = "master, release"
+  branchpattern = "(?P<org>\w+).*-(?P<issue_number>\d+).*"
 ```
+
+## Branch name
+the default branch name should match the `<org>-<issue_number>` pattern, but if your branch name is different, make sure to add the regex matching your branch name.
+don't forget to add `org` and `issue_number` to capture the matches.
+
+`org` is optional, but `issue_number` is requried.
+
 
 and then copy the binary to you `.git/hooks/prepare-commit-msg`
 
