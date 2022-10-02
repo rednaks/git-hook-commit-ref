@@ -80,3 +80,41 @@ fn test_make_config_from_map() {
     assert_eq!(config.project, "test-project");
     assert_eq!(config.forbidden_branches, vec!["master"]);
 }
+
+#[test]
+fn test_get_config_with_default_pattern() {
+    use_git_config_file(String::from("test_get_config_with_all_fields"));
+
+    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+
+    let config = match Config::from_map(config_map) {
+        Ok(config) => config,
+        Err(e) => {
+            panic!("{}", e)
+        }
+    };
+
+    assert_eq!(
+        config.branch_pattern,
+        String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)")
+    );
+}
+
+#[test]
+fn test_get_config_patten() {
+    use_git_config_file(String::from("test_get_config_pattern"));
+
+    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+
+    let config = match Config::from_map(config_map) {
+        Ok(config) => config,
+        Err(e) => {
+            panic!("bad config ? {}", e)
+        }
+    };
+
+    assert_eq!(
+        config.branch_pattern,
+        String::from(".*-(?P<issue_number>\\d+).*")
+    );
+}

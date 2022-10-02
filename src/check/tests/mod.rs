@@ -1,5 +1,6 @@
 use crate::check;
 use crate::config;
+use regex::Regex;
 
 impl Clone for check::Config {
     fn clone(&self) -> Self {
@@ -7,6 +8,7 @@ impl Clone for check::Config {
             org: self.org.clone(),
             project: self.project.clone(),
             forbidden_branches: self.forbidden_branches.clone(),
+            branch_pattern: self.branch_pattern.clone(),
         }
     }
 }
@@ -17,6 +19,7 @@ fn test_check_commit_msg_forbidden_branch() {
         org: Some("test-org".to_string()),
         project: "test-project".to_string(),
         forbidden_branches: vec!["master".to_string()],
+        branch_pattern: String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)"),
     };
 
     let commit_msg = String::from("a commit msg");
@@ -33,9 +36,10 @@ fn test_check_commit_msg_forbidden_branch() {
 #[test]
 fn test_check_commit_msg_missing_ref() {
     let config = config::Config {
-        org: Some("test-org".to_string()),
+        org: Some("testorg".to_string()),
         project: "test-project".to_string(),
         forbidden_branches: vec!["master".to_string()],
+        branch_pattern: String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)"),
     };
 
     let commit_msg = String::from("a commit msg");
@@ -55,12 +59,14 @@ fn test_check_commit_msg_missing_ref() {
 
     assert_eq!(result, Ok(expected_commit_msg));
 }
+
 #[test]
 fn test_check_good_commit_msg() {
     let config = config::Config {
-        org: Some(String::from("test-org")),
+        org: Some(String::from("testorg")),
         project: String::from("test-project"),
         forbidden_branches: vec!["master".to_string()],
+        branch_pattern: String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)"),
     };
 
     let commit_msg = String::from(format!(
@@ -82,27 +88,30 @@ fn test_check_good_commit_msg() {
 #[test]
 fn test_make_ref_org_not_in_branch_name() {
     let config = config::Config {
-        org: Some(String::from("test-org")),
+        org: Some(String::from("testorg")),
         project: String::from("test-project"),
         forbidden_branches: vec![String::from("master")],
+        branch_pattern: String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)"),
     };
 
-    let res = check::make_ref(config, String::from("other-org-123"));
+    let res = check::make_ref(config.clone(), String::from("other-org-123"));
 
     assert_eq!(
         res,
-        Err(String::from(
-            "Wrong branch name, missing organization should be formatted <org>-<issue_number>",
-        ))
+        Err(String::from(format!(
+            "Wrong branch name, missing organization should be formatted follwing this pattern: {}",
+            config.branch_pattern
+        )))
     );
 }
 
 #[test]
 fn test_make_ref_branch_name_not_good_format() {
     let config = config::Config {
-        org: Some(String::from("test-org")),
+        org: Some(String::from("testorg")),
         project: String::from("test-project"),
         forbidden_branches: vec![String::from("master")],
+        branch_pattern: String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)"),
     };
 
     let res = check::make_ref(
@@ -112,10 +121,25 @@ fn test_make_ref_branch_name_not_good_format() {
 
     assert_eq!(
         res,
-        Err(String::from(
-            "Wrong branch name, should be formatted <org>-<issue_number>",
-        ))
+        Err(String::from(format!(
+            "Wrong branch name, missing organization should be formatted follwing this pattern: {}",
+            config.branch_pattern
+        )))
     );
+}
+
+#[test]
+fn test_make_ref_branch_name_without_org() {
+    let config = config::Config {
+        org: None,
+        project: String::from("test-project"),
+        forbidden_branches: vec![String::from("master")],
+        branch_pattern: String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)"),
+    };
+
+    let res = check::make_ref(config.clone(), String::from("shortdescription-123"));
+
+    assert_eq!(res, Ok(String::from(format!("{}#123", config.project))));
 }
 
 #[test]
@@ -124,9 +148,90 @@ fn test_make_ref_without_org() {
         org: None,
         project: String::from("test-project"),
         forbidden_branches: vec![String::from("master")],
+        branch_pattern: String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)"),
     };
 
     let res = check::make_ref(config.clone(), String::from("org-123"));
 
     assert_eq!(res, Ok(String::from(format!("{}#123", config.project))));
+}
+
+#[test]
+fn test_pattner_simple_complex() {
+    let branch_name = "my-org-12-shor-description";
+    let pattern = r"^(?P<org>[aA-zZ0-9_\-]+)-(?P<issue_number>\d+).*";
+
+    let re = Regex::new(pattern).unwrap();
+
+    let mut org: String = String::from("");
+    let mut issue_number: u16 = 0;
+
+    match re.captures(branch_name) {
+        Some(cap) => {
+            match cap.get(1) {
+                Some(o) => {
+                    org = String::from(o.as_str());
+                }
+                None => {
+                    println!("Couldn't match the org")
+                }
+            };
+
+            match cap.get(2) {
+                Some(inum) => {
+                    issue_number = inum.as_str().parse::<u16>().unwrap();
+                }
+                None => {
+                    println!("Couldn't match the issue number")
+                }
+            };
+        }
+
+        None => {
+            assert!(false, "No matches found");
+        }
+    };
+
+    assert_eq!(org, "my-org");
+    assert_eq!(issue_number, 12);
+}
+
+#[test]
+fn test_pattner_simple() {
+    let branch_name = "myorg-123-shor-description";
+    let pattern = r"^(?P<org>\w+)-(?P<issue_number>\d+).*";
+
+    let re = Regex::new(pattern).unwrap();
+
+    let mut org: String = String::from("");
+    let mut issue_number: u16 = 0;
+
+    match re.captures(branch_name) {
+        Some(cap) => {
+            match cap.get(1) {
+                Some(o) => {
+                    org = String::from(o.as_str());
+                }
+                None => {
+                    println!("Couldn't match the org")
+                }
+            };
+
+            match cap.get(2) {
+                Some(inum) => {
+                    issue_number = inum.as_str().parse::<u16>().unwrap();
+                }
+                None => {
+                    println!("Couldn't match the issue number")
+                }
+            };
+        }
+
+        None => {
+            assert!(false, "No matches found");
+        }
+    };
+
+    assert_eq!(org, "myorg");
+    assert_eq!(issue_number, 123);
 }

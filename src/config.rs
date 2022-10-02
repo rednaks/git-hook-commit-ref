@@ -9,6 +9,7 @@ pub struct Config {
     pub org: Option<String>,
     pub project: String,
     pub forbidden_branches: Vec<String>,
+    pub branch_pattern: String,
 }
 
 impl Config {
@@ -33,10 +34,16 @@ impl Config {
             None => return Err(String::from("Mirring org in the config")),
         };
 
+        let branch_pattern = match config.get("branchpattern") {
+            Some(pattern) => String::from(pattern),
+            None => String::from("(?P<org>\\w+)-(?P<issue_number>\\d+)"),
+        };
+
         Ok(Config {
             org,
             project,
             forbidden_branches,
+            branch_pattern,
         })
     }
 }

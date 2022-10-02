@@ -1,4 +1,5 @@
 use super::config::Config;
+use regex::Regex;
 use std::process::Command;
 
 #[cfg(test)]
@@ -30,25 +31,70 @@ pub fn get_commit_msg(commit_msg_file: &String) -> String {
 }
 
 pub fn make_ref(config: Config, branch: String) -> Result<String, String> {
-    match config.org.clone() {
-        Some(org) => {
-            if !branch.contains(&org) {
-                return Err(String::from(
-                    "Wrong branch name, missing organization should be formatted <org>-<issue_number>",
-                ));
+    let re = match Regex::new(config.branch_pattern.as_str()) {
+        Ok(r) => r,
+        Err(_) => {
+            return Err(String::from(
+                "Invalid pattern in your git config: please check branchpattern value",
+            ));
+        }
+    };
+
+    let cap = match re.captures(branch.as_str()) {
+        Some(c) => c,
+        None => {
+            return Err(
+                String::from(
+                    format!(
+                        "Wrong branch name, missing organization should be formatted follwing this pattern: {}", 
+                        config.branch_pattern
+                    )
+                )
+            );
+        }
+    };
+
+    match cap.name("org") {
+        Some(matched_org) => {
+            // check if it's the same as org
+            match config.org.clone() {
+                Some(org) => {
+                    if matched_org.as_str() != org {
+                        return Err(
+                            String::from(
+                               format!(
+                                   "Wrong branch name, missing organization should be formatted follwing this pattern: {}", 
+                                   config.branch_pattern
+                               )
+                            )
+                        );
+                    }
+                }
+                None => {
+                    // all good
+                }
             }
         }
         None => {
-            // nothing to do
+            // there is no match
+            // check if org is required,
+            // if it's required, then return an error,
+            // otherwise continue
+            if config.org.clone() == None {
+                // all good
+            } else {
+                return Err(format!("Branch name is missing the org, please make sure your branch name matches this pattern: {}", config.branch_pattern));
+            }
         }
     }
 
-    let issue_number_part = match branch.split('-').last() {
-        Some(part) => part,
+    let issue_number_part = match cap.name("issue_number") {
+        Some(part) => String::from(part.as_str()),
         None => {
-            return Err(String::from(
-                "Wrong branch name, should be formatted <org>-<issue_number>",
-            ))
+            return Err(String::from(format!(
+                "Wrong branch name, unable to find the issue number, make sure it's formatted: {}",
+                config.branch_pattern
+            )))
         }
     };
 
