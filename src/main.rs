@@ -5,8 +5,74 @@ use config::{get_config, Config};
 mod check;
 use check::{check_commit_msg, get_commit_msg, get_current_branch};
 
+fn install() {
+    println!("Installing ...");
+
+    // 1. get current git root  .git
+    let git_dir_path = match std::process::Command::new("git")
+        .arg("rev-parse")
+        .arg("--show-toplevel")
+        .output()
+    {
+        Ok(output) => output,
+        Err(_) => {
+            println!("Not a git directory");
+            std::process::exit(-1);
+        }
+    };
+
+    let git_dir_path = match String::from_utf8(git_dir_path.stdout) {
+        Ok(path) => path,
+        Err(_) => {
+            println!("Unable to decode stdout");
+            std::process::exit(-1);
+        }
+    };
+
+    // 2. get binary location
+    let hook_bin_path = match env::args().nth(0) {
+        Some(arg) => arg,
+        None => {
+            std::process::exit(-1);
+        }
+    };
+
+    // 3. create a sym link to .git/hooks/prepare-commit-msg
+    match std::process::Command::new("ln")
+        .arg("-s")
+        .arg(hook_bin_path)
+        .arg(String::from(format!(
+            "{}/.git/hooks/prepare-commit-msg",
+            git_dir_path.trim()
+        )))
+        .status()
+    {
+        Ok(_) => {
+            println!("Successfully created a symlink");
+        }
+        Err(_) => {
+            println!("Unable to create symlink");
+            std::process::exit(-1);
+        }
+    }
+}
+
 fn main() -> Result<(), String> {
-    let commit_msg_file = env::args().nth(1).expect("No file name provided");
+    let arg = match env::args().nth(1) {
+        Some(val) => val,
+        None => {
+            return Err(String::from(
+                "Missing argument. Usage: --install org git-commit-file-path",
+            ))
+        }
+    };
+
+    if arg == "--install" {
+        install();
+        std::process::exit(0);
+    }
+
+    // add config check arg
 
     // get current branch
     // check if commit msg contains the reference
@@ -19,7 +85,7 @@ fn main() -> Result<(), String> {
         Err(e) => return Err(e),
     };
 
-    let commit_msg = get_commit_msg(&commit_msg_file);
+    let commit_msg = get_commit_msg(&arg);
 
     let config_map = match get_config(String::from("commit-ref-hook")) {
         Ok(cm) => cm,
@@ -34,7 +100,7 @@ fn main() -> Result<(), String> {
     match check_commit_msg(config, &commit_msg, current_branch) {
         Ok(new_commit_msg) => {
             if new_commit_msg != commit_msg {
-                match std::fs::write(commit_msg_file, &new_commit_msg) {
+                match std::fs::write(arg, &new_commit_msg) {
                     Ok(_) => {
                         println!("Updated commit msg ! : {}", new_commit_msg);
                     }
