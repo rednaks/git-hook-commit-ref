@@ -8,9 +8,14 @@ if not it will update the commit message.
 
 build the project:
 ```
-cargo build --release
+cargo install git-hook-commit-ref
 ```
 
+# Install the hook to your current git repo:
+```sh
+cd my_git_project
+git hook-commit-ref --install
+```
 ## Configure your git repo
 
 in your project, edit the `.git/config` file to add the organization and the project name, and a list of forbidden branches to commit from.
@@ -29,12 +34,6 @@ eg:
 the default branch name should match the `<org>-<issue_number>` pattern, but if your branch name is different, make sure to add the regex matching your branch name.
 don't forget to add `org` and `issue_number` to capture the matches.
 
-`org` is optional, but `issue_number` is requried.
+`org` is optional, but `issue_number` is required.
 
 
-and then copy the binary to you `.git/hooks/prepare-commit-msg`
-
-eg:
-```sh
-cp git-hook-commit-ref/target/release/git-hook-commit-ref  my_git_project/.git/hooks/prepare-commit-msg
-```
