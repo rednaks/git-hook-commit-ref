@@ -36,4 +36,7 @@ don't forget to add `org` and `issue_number` to capture the matches.
 
 `org` is optional, but `issue_number` is required.
 
+### Check everything is good:
+To check that everything works and configured, you can use `git hook-commit-ref --check` in your git repo.
+
 
