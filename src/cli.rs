@@ -1,30 +1,17 @@
 use crate::config;
+use git2;
 use std::env;
 
-fn get_current_git_path() -> Result<String, String> {
-    // 1. get current git root  .git
-    let git_dir_path = match std::process::Command::new("git")
-        .arg("rev-parse")
-        .arg("--show-toplevel")
-        .output()
-    {
-        Ok(output) => output,
-        Err(_) => {
-            return Err(String::from("Not a git directory"));
-        }
-    };
+fn get_current_git_path(repo: git2::Repository) -> Result<String, String> {
+    // get current git root  .git
 
-    let git_dir_path = match String::from_utf8(git_dir_path.stdout) {
-        Ok(path) => path,
-        Err(_) => {
-            return Err(String::from("Unable to decode stdout"));
-        }
-    };
-
-    Ok(git_dir_path)
+    match repo.path().to_str() {
+        Some(p) => Ok(String::from(p)),
+        None => return Err(String::from("Unable to get repository path")),
+    }
 }
 
-pub fn install() -> Result<(), String> {
+pub fn install(repo: git2::Repository) -> Result<(), String> {
     println!("Installing ...");
 
     // 2. get binary location
@@ -36,7 +23,7 @@ pub fn install() -> Result<(), String> {
         }
     };
 
-    let git_dir_path = match get_current_git_path() {
+    let git_dir_path = match get_current_git_path(repo) {
         Ok(path) => path,
         Err(e) => return Err(e),
     };
@@ -63,8 +50,8 @@ pub fn install() -> Result<(), String> {
     Ok(())
 }
 
-pub fn check() -> Result<(), String> {
-    let config_map = match config::get_config(String::from("commit-ref-hook")) {
+pub fn check(config: git2::Config) -> Result<(), String> {
+    let config_map = match config::get_config(config, String::from("commit-ref-hook")) {
         Ok(config_map) => config_map,
         Err(e) => return Err(e),
     };
