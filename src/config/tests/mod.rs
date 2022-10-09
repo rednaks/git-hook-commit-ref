@@ -2,41 +2,42 @@ use super::super::config;
 use super::Config;
 use std::collections::HashMap;
 
+use git2;
 use std::env;
 fn get_config_test_files_path() -> String {
     let path = env::current_dir().unwrap();
     format!("{}/src/config/tests/files/config", path.display())
 }
 
-fn use_git_config_file(git_config_file: String) {
-    env::set_var(
-        "GIT_CONFIG",
-        format!("{}/{}", get_config_test_files_path(), git_config_file),
-    );
+fn use_git_config_file(git_config_file: String) -> git2::Config {
+    git2::Config::open(std::path::Path::new(
+        format!("{}/{}", get_config_test_files_path(), git_config_file).as_str(),
+    ))
+    .unwrap()
 }
 
 #[test]
 fn test_get_config_empty() {
-    use_git_config_file(String::from("test_get_config_empty"));
+    let git_config = use_git_config_file(String::from("test_get_config_empty"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+    let config_map = config::get_config(git_config, "commit-hook-ref".to_string()).unwrap();
     assert!(config_map.is_empty());
 }
 
 #[test]
 fn test_get_config_without_org() {
-    use_git_config_file(String::from("test_get_config_without_org"));
+    let git_config = use_git_config_file(String::from("test_get_config_without_org"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+    let config_map = config::get_config(git_config, "commit-hook-ref".to_string()).unwrap();
 
     assert!(config_map.get("org") == None);
 }
 
 #[test]
 fn test_get_config_without_branches() {
-    use_git_config_file(String::from("test_get_config_without_branches"));
+    let git_config = use_git_config_file(String::from("test_get_config_without_branches"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+    let config_map = config::get_config(git_config, "commit-hook-ref".to_string()).unwrap();
 
     let config = config::Config::from_map(config_map).unwrap();
 
@@ -46,9 +47,9 @@ fn test_get_config_without_branches() {
 
 #[test]
 fn test_get_config_with_all_fields() {
-    use_git_config_file(String::from("test_get_config_with_all_fields"));
+    let git_config = use_git_config_file(String::from("test_get_config_with_all_fields"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+    let config_map = config::get_config(git_config, "commit-hook-ref".to_string()).unwrap();
     let config = match Config::from_map(config_map) {
         Ok(config) => config,
         Err(e) => {
@@ -83,9 +84,9 @@ fn test_make_config_from_map() {
 
 #[test]
 fn test_get_config_with_default_pattern() {
-    use_git_config_file(String::from("test_get_config_with_all_fields"));
+    let git_config = use_git_config_file(String::from("test_get_config_with_all_fields"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+    let config_map = config::get_config(git_config, "commit-hook-ref".to_string()).unwrap();
 
     let config = match Config::from_map(config_map) {
         Ok(config) => config,
@@ -102,9 +103,9 @@ fn test_get_config_with_default_pattern() {
 
 #[test]
 fn test_get_config_patten() {
-    use_git_config_file(String::from("test_get_config_pattern"));
+    let git_config = use_git_config_file(String::from("test_get_config_pattern"));
 
-    let config_map = config::get_config("commit-hook-ref".to_string()).unwrap();
+    let config_map = config::get_config(git_config, "commit-hook-ref".to_string()).unwrap();
 
     let config = match Config::from_map(config_map) {
         Ok(config) => config,
