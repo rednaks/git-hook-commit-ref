@@ -1,5 +1,5 @@
+use git2;
 use std::collections::HashMap;
-use std::process::Command;
 
 #[cfg(test)]
 mod tests;
@@ -48,32 +48,32 @@ impl Config {
     }
 }
 
-pub fn get_config(prefix: String) -> Result<HashMap<String, String>, String> {
-    let git_config = match String::from_utf8(
-        Command::new("git")
-            .arg("config")
-            .arg("--list")
-            .output()
-            .expect("Unable to find git config")
-            .stdout,
-    ) {
-        Ok(c) => c,
-        Err(_) => return Err(String::from("Error while parsing config")),
+pub fn get_config(
+    git_config: git2::Config,
+    prefix: String,
+) -> Result<HashMap<String, String>, String> {
+    let mut config_entries = match git_config.entries(Some(format!("{}.*", prefix).as_str())) {
+        Ok(entries) =>  entries,
+        Err(_) => return Err(String::from("No entries found in config for {}. please make sure you configured correctly your repository"))
     };
-
-    let hook_config = git_config
-        .lines()
-        .filter(|line| line.starts_with(prefix.as_str()));
 
     let mut config = HashMap::<String, String>::new();
 
-    for c in hook_config {
-        let kv_clean = c.replace(format!("{}.", prefix).as_str(), "");
-        let mut kv = kv_clean.split('=');
-        config.insert(
-            String::from(kv.next().unwrap()),
-            String::from(kv.next().unwrap()),
-        );
+    while let Some(entry) = config_entries.next() {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => return Err(String::from("Error with config entry")),
+        };
+
+        let key = match entry.name() {
+            Some(k) => k.replace(format!("{}.", prefix).as_str(), ""),
+            None => return Err(String::from("Error parsing the config entry")),
+        };
+        let val = match entry.value() {
+            Some(v) => String::from(v),
+            None => return Err(format!("Unable to get value for config {}", key)),
+        };
+        config.insert(String::from(key), val);
     }
 
     Ok(config)

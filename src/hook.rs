@@ -1,8 +1,9 @@
 use crate::config::{get_config, Config};
 
 use crate::check::{check_commit_msg, get_commit_msg, get_current_branch};
+use git2;
 
-pub fn handle_hook(commit_file_path: String) -> Result<(), String> {
+pub fn handle_hook(commit_file_path: String, repo: git2::Repository) -> Result<(), String> {
     // add config check arg
 
     // get current branch
@@ -11,14 +12,18 @@ pub fn handle_hook(commit_file_path: String) -> Result<(), String> {
     // or the branch is not in the correct pattern: (<org>/<project_name>-<issue_number>)
     // if branch is missing, reconstruct it and add it to the msg: (<org>/<project_name>#<issue_number>)
 
-    let current_branch = match get_current_branch() {
+    let current_branch = match get_current_branch(&repo) {
         Ok(branch) => branch,
         Err(e) => return Err(e),
     };
 
     let commit_msg = get_commit_msg(&commit_file_path);
+    let git_config = match repo.config() {
+        Ok(cfg) => cfg,
+        Err(_) => return Err(String::from("No config found")),
+    };
 
-    let config_map = match get_config(String::from("commit-ref-hook")) {
+    let config_map = match get_config(git_config, String::from("commit-ref-hook")) {
         Ok(cm) => cm,
         Err(e) => return Err(e),
     };

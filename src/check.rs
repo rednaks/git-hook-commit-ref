@@ -1,29 +1,20 @@
 use super::config::Config;
+use git2;
 use regex::Regex;
-use std::process::Command;
 
 #[cfg(test)]
 mod tests;
 
-pub fn get_current_branch() -> Result<String, String> {
-    let output = Command::new("git")
-        .arg("branch")
-        .arg("--show-current")
-        .output()
-        .expect("failed to execute git command");
-
-    let stdout = match String::from_utf8(output.stdout) {
-        Ok(s) => s,
-        Err(_) => return Err(String::from("Output issue")),
+pub fn get_current_branch(repo: &git2::Repository) -> Result<String, String> {
+    let current_branch = match repo.head() {
+        Ok(cb) => cb,
+        Err(_) => return Err(String::from("Unable to get branch name")),
     };
 
-    Ok(stdout
-        .lines()
-        .nth(0)
-        .expect("Failed git execute git")
-        .to_string()
-        .trim()
-        .to_string())
+    match current_branch.name() {
+        Some(branch) => Ok(String::from(branch)),
+        None => Err(String::from("Unable to get branch name")),
+    }
 }
 
 pub fn get_commit_msg(commit_msg_file: &String) -> String {

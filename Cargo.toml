@@ -2,7 +2,7 @@
 name = "git-hook-commit-ref"
 description = "Git hook to verify that makes sure the commit message contains a reference to the issue."
 authors = ["Skander <skander.bmahmoud@gmail.com"]
-version = "1.2.0"
+version = "1.3.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/rednaks/git-hook-commit-ref"
@@ -11,4 +11,5 @@ repository = "https://github.com/rednaks/git-hook-commit-ref"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+git2 = "0.15.0"
 regex = "1.6.0"
