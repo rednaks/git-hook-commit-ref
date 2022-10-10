@@ -33,7 +33,7 @@ pub fn install(repo: git2::Repository) -> Result<(), String> {
         .arg("-s")
         .arg(hook_bin_path)
         .arg(String::from(format!(
-            "{}/.git/hooks/prepare-commit-msg",
+            "{}hooks/prepare-commit-msg",
             git_dir_path.trim()
         )))
         .status()
