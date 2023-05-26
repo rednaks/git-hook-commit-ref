@@ -7,6 +7,8 @@ mod hook;
 use git2::Repository;
 
 fn main() -> Result<(), String> {
+    // println!("args: {:?}", env::args());
+    println!("vars: {:?}", env::vars());
     let arg = match env::args().nth(1) {
         Some(val) => val,
         None => {
