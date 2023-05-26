@@ -36,7 +36,10 @@ don't forget to add `org` and `issue_number` to capture the matches.
 
 `org` is optional, but `issue_number` is required.
 
-### Check everything is good:
+### Check everything is good
 To check that everything works and configured, you can use `git hook-commit-ref --check` in your git repo.
 
 
+### Bypassing hook
+In some situations like merging or rebasing there is no current branch, but a reference instead. you won't be able to commit your changes because it doesn't match the hook's configuration.
+You can use `COMMIT_HOOK_IGNORE=true` env var when commit to bypass the hook.
