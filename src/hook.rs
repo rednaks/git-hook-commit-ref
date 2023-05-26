@@ -2,6 +2,7 @@ use crate::config::{get_config, Config};
 
 use crate::check::{check_commit_msg, get_commit_msg, get_current_branch};
 use git2;
+use std::env;
 
 pub fn handle_hook(commit_file_path: String, repo: git2::Repository) -> Result<(), String> {
     // add config check arg
@@ -11,6 +12,16 @@ pub fn handle_hook(commit_file_path: String, repo: git2::Repository) -> Result<(
     // check if we're in the good branch, if the reference matches the branch name,
     // or the branch is not in the correct pattern: (<org>/<project_name>-<issue_number>)
     // if branch is missing, reconstruct it and add it to the msg: (<org>/<project_name>#<issue_number>)
+
+    let ignore_hook: bool = match env::var("COMMIT_HOOK_IGNORE") {
+        Ok(v) => v.parse::<bool>().unwrap_or(false),
+        Err(_) => false,
+    };
+
+    if ignore_hook {
+        println!("Bypassing hook because COMMIT_HOOK_IGNORE=true");
+        return Ok(());
+    }
 
     let current_branch = match get_current_branch(&repo) {
         Ok(branch) => branch,
@@ -50,6 +61,7 @@ pub fn handle_hook(commit_file_path: String, repo: git2::Repository) -> Result<(
         }
         Err(e) => {
             println!("{}", e);
+            println!("If you want to bypass the hook, use COMMIT_HOOK_IGNORE=true git commit ...");
             std::process::exit(-1);
         }
     }
